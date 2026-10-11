@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Finders &amp; Co.</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='26' cy='26' r='18' fill='%23fdf6e3' stroke='%232e2535' stroke-width='6'/><path d='M39 39 L58 58' stroke='%232e2535' stroke-width='9' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="ui">
+
+  <!-- ============ SPLASH ============ -->
+  <section id="splash" class="screen show">
+    <div class="logo big"><span class="mag"></span>Finders <em>&amp;</em> Co.</div>
+    <div class="tagline">Lost Property Department &middot; Est. Puddlewick</div>
+    <div class="blink">click anywhere to clock in</div>
+    <div class="small-note">Best with sound on 🔊</div>
+  </section>
+
+  <!-- ============ TITLE ============ -->
+  <section id="title" class="screen">
+    <div class="logo"><span class="mag"></span>Finders <em>&amp;</em> Co.</div>
+    <div class="tagline">A cozy lost-and-found puzzle</div>
+    <nav class="menu">
+      <button class="btn primary" id="btn-play">Start Shift</button>
+      <button class="btn" id="btn-levels">Case Files</button>
+      <button class="btn" id="btn-options">Options</button>
+      <button class="btn" id="btn-credits">Credits</button>
+    </nav>
+    <div class="progress-line" id="title-progress"></div>
+  </section>
+
+  <!-- ============ LEVEL SELECT ============ -->
+  <section id="levels" class="screen">
+    <h1 class="h">Case Files</h1>
+    <div class="level-grid" id="level-grid"></div>
+    <button class="btn back" data-back>Back</button>
+  </section>
+
+  <!-- ============ CREDITS ============ -->
+  <section id="credits" class="screen">
+    <div class="paper credits-paper">
+      <h1 class="h">Credits</h1>
+      <p><b>Finders &amp; Co.</b></p>
+      <p>A small hidden-object puzzle game about returning lost things to the people who miss them.</p>
+      <p>Code, illustration, music &amp; sound: every pixel and every note is generated live in your browser. No asset files, no downloads.</p>
+      <p>Made with Claude.</p>
+      <p>Inspired by the warm, busy, hand-drawn hidden-object games we love.</p>
+      <p class="thanks">Thank you for playing ♥</p>
+      <button class="btn back" data-back>Back</button>
+    </div>
+  </section>
+
+  <!-- ============ LOADING ============ -->
+  <section id="loading" class="screen">
+    <div class="loading-box">
+      <div class="spinner"><span class="mag"></span></div>
+      <div class="loading-title">Sorting the lost property…</div>
+      <div class="bar"><div id="load-bar"></div></div>
+      <div class="tip" id="load-tip"></div>
+    </div>
+  </section>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-pill" id="hud-level">
+        <span id="hud-name">Level</span>
+        <span class="sep">·</span>
+        <span id="hud-time">0:00</span>
+      </div>
+      <div class="hud-pill cats" id="hud-cats" title="Hidden office cats"><canvas id="cat-icon" width="44" height="44"></canvas><span id="hud-cat-count">0/3</span></div>
+      <div class="hud-right">
+        <button class="icon-btn" id="btn-zoomout" title="Zoom out (-)"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l5 5M7 10h6"/></svg></button>
+        <button class="icon-btn" id="btn-zoomin" title="Zoom in (+)"><svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l5 5M7 10h6M10 7v6"/></svg></button>
+        <button class="icon-btn hint" id="btn-hint" title="Hint (H)"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span class="badge" id="hint-count">3</span></button>
+        <button class="icon-btn" id="btn-pause" title="Pause (Esc)"><svg viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg></button>
+      </div>
+    </div>
+    <div class="tray" id="tray"></div>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <div id="modal-wrap" class="hidden">
+    <div class="modal paper" id="memo">
+      <div class="memo-head">
+        <div class="memo-from">MEMO · Finders &amp; Co.</div>
+        <div class="memo-stamp">SHIFT <span id="memo-num">1</span></div>
+      </div>
+      <h2 id="memo-title">Location</h2>
+      <div id="memo-text" class="memo-text"></div>
+      <div class="memo-stats" id="memo-stats"></div>
+      <button class="btn primary" id="memo-go">Clock In</button>
+    </div>
+
+    <div class="modal paper" id="casecard">
+      <button class="close-x" id="card-close">×</button>
+      <div class="card-top">
+        <div class="card-portrait"><canvas id="card-portrait" width="180" height="200"></canvas></div>
+        <div class="card-info">
+          <div class="card-label">CASE FILE</div>
+          <h2 id="card-name">Name</h2>
+          <div class="card-lost">Lost: <b id="card-item-name">thing</b></div>
+          <canvas id="card-item" width="96" height="96"></canvas>
+        </div>
+      </div>
+      <blockquote id="card-clue"></blockquote>
+      <div class="card-status" id="card-status"></div>
+      <div class="card-actions">
+        <button class="btn small" id="card-locate">Locate owner</button>
+        <button class="btn small primary" id="card-ok">Back to searching</button>
+      </div>
+      <div class="stamp" id="card-stamp">RETURNED</div>
+    </div>
+
+    <div class="modal paper" id="pause">
+      <h2>Paused</h2>
+      <nav class="menu">
+        <button class="btn primary" id="pause-resume">Resume</button>
+        <button class="btn" id="pause-options">Options</button>
+        <button class="btn" id="pause-restart">Restart Location</button>
+        <button class="btn" id="pause-quit">Quit to Menu</button>
+      </nav>
+    </div>
+
+    <div class="modal paper" id="options">
+      <h2>Options</h2>
+      <label class="opt">Music <input type="range" id="opt-music" min="0" max="100"><span id="opt-music-v"></span></label>
+      <label class="opt">Sound effects <input type="range" id="opt-sfx" min="0" max="100"><span id="opt-sfx-v"></span></label>
+      <label class="opt check">Screen-edge vignette <input type="checkbox" id="opt-vignette"></label>
+      <div class="opt-row">
+        <button class="btn small" id="opt-fullscreen">Toggle Fullscreen</button>
+        <button class="btn small danger" id="opt-reset">Reset Progress</button>
+      </div>
+      <div class="keys">
+        <b>Controls</b><br>
+        Drag / arrow keys / WASD — look around<br>
+        Scroll wheel / pinch / + − — zoom<br>
+        Click — pick up items, talk to people<br>
+        H — hint &nbsp;·&nbsp; Esc — pause
+      </div>
+      <button class="btn primary" id="opt-close">Done</button>
+    </div>
+
+    <div class="modal paper" id="complete">
+      <div class="big-stamp">CASE CLOSED</div>
+      <h2 id="complete-title">Location</h2>
+      <div class="stars" id="complete-stars"><span>★</span><span>★</span><span>★</span></div>
+      <div class="complete-stats" id="complete-stats"></div>
+      <div class="star-help">★ finish &nbsp; ★ use at most 1 hint &nbsp; ★ find all 3 cats</div>
+      <nav class="menu row">
+        <button class="btn" id="complete-menu">Menu</button>
+        <button class="btn" id="complete-replay">Replay</button>
+        <button class="btn primary" id="complete-next">Next Shift</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ============ ENDING ============ -->
+  <section id="ending" class="screen">
+    <div class="paper ending-paper">
+      <div class="big-stamp gold">SENIOR FINDER</div>
+      <h1 class="h">The End</h1>
+      <div id="ending-text" class="memo-text"></div>
+      <div id="ending-stats" class="complete-stats"></div>
+      <button class="btn primary" id="ending-menu">Back to the Office</button>
+    </div>
+  </section>
+
+  <div id="coach" class="hidden"><div id="coach-text"></div><button class="btn small" id="coach-btn">Got it</button></div>
+  <div id="toast"></div>
+  <div id="fade" class="on"></div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/items.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
